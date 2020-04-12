@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -8,25 +9,43 @@ namespace Eir.AutoValidate
 {
     class Program
     {
-        String exeDir;
-        String exePath;
-        String exeArgs;
-        private Boolean showInfo = false;
+        class WatchNode
+        {
+            public ManualResetEvent wake = new ManualResetEvent(false);
+            public String Name;
+            public String ExeDir;
+            public String ExePath;
+            public String ExeArgs;
+            public FileSystemWatcher Watcher = new FileSystemWatcher();
+
+            public void NotifyChange()
+            {
+                Message(ConsoleColor.DarkGray, $"{this.Name} Directory '{this.Watcher.Path}' changed.");
+                this.wake.Set();
+            }
+        }
+
+        static Boolean showInfo = false;
 
         Int32 executionCounter = 1;
-        FileSystemWatcher watcher;
+        List<WatchNode> watchNodes = new List<WatchNode>();
 
         public Program()
         {
-            watcher = new FileSystemWatcher();
-            watcher.Path = ".";
         }
 
         void ParseArguments(String[] args)
         {
+            WatchNode Current()
+            {
+                if (this.watchNodes.Count == 0)
+                    this.watchNodes.Add(new WatchNode());
+                return this.watchNodes[this.watchNodes.Count - 1];
+            }
+
             Int32 i = 0;
 
-            String GetArg(String errorMsg)
+            String GetArg(String errorMsg, bool dashFlag = false)
             {
                 if (i >= args.Length)
                     throw new Exception($"Missing {errorMsg} parameter");
@@ -34,28 +53,41 @@ namespace Eir.AutoValidate
                 String arg = args[i++].Trim();
                 if ((arg[0] == '"') && (arg[arg.Length - 1] == '"'))
                     arg = arg.Substring(1, arg.Length - 2);
+
+                bool dashParam = arg.StartsWith("-");
+                if (dashParam != dashFlag)
+                    throw new Exception($"invalid {errorMsg} parameter");
+
                 return arg;
             }
 
             while (i < args.Length)
             {
-                String arg = GetArg("arg").ToUpper();
+                String arg = GetArg("arg", true).ToUpper();
                 switch (arg)
                 {
+                    case "-N":
+                        WatchNode w = new WatchNode();
+                        if (this.watchNodes.Count > 0)
+                            w.ExeDir = this.watchNodes[this.watchNodes.Count - 1].ExeDir;
+                        this.watchNodes.Add(w);
+                        Current().Name = GetArg("-n");
+                        break;
+
                     case "-D":
-                        Environment.CurrentDirectory = exeDir = GetArg("-d");
+                        Current().ExeDir = GetArg("-d");
                         break;
 
                     case "-W":
-                        watcher.Path = GetArg("-w");
+                        Current().Watcher.Path = GetArg("-w");
                         break;
 
                     case "-C":
-                        this.exePath = GetArg("-c");
+                        Current().ExePath = GetArg("-c");
                         break;
 
                     case "-A":
-                        this.exeArgs = GetArg("-a");
+                        Current().ExeArgs = GetArg("-a");
                         break;
 
                     default:
@@ -64,23 +96,33 @@ namespace Eir.AutoValidate
             }
         }
 
-        AutoResetEvent wake = new AutoResetEvent(false);
         bool doneFlag = false;
 
-        void RunCommand()
+        void RunCommand(WatchNode node)
         {
             while (true)
             {
                 try
                 {
-                    // Wait for no events for timeout.
-                    wake.WaitOne();
-                    while ((this.doneFlag == false) && (wake.WaitOne(1000) == true))
-                        Console.WriteLine("Additional wake events received. Restarting wait");
+                    node.wake.WaitOne();
+                    node.wake.Reset();
 
-                    if (this.doneFlag == true)
-                        return;
-                    this.ExecuteCommand();
+                    // Wait for no events for timeout.
+                    bool activityFlag = true;
+                    while (activityFlag == true)
+                    {
+                        if (this.doneFlag)
+                            return;
+                        activityFlag = node.wake.WaitOne(1000);
+                        node.wake.Reset();
+                        if (activityFlag)
+                        {
+                            Message(ConsoleColor.DarkGray,
+                                $"{node.Name}: Additional wake events received. Restarting wait");
+                        }
+                    }
+
+                    this.ExecuteCommand(node);
                 }
                 catch (Exception e)
                 {
@@ -90,28 +132,30 @@ namespace Eir.AutoValidate
         }
 
 
-        void ExecuteCommand()
+        void ExecuteCommand(WatchNode node)
         {
             using (Mutex gMtx = new Mutex(false, "AutoMate"))
             {
-                Console.Clear();
+                //Console.Clear();
                 DateTime dt = DateTime.Now;
-                gMtx.WaitOne(10 * 1000);
+                gMtx.WaitOne(1 * 1000);
                 TimeSpan ts = DateTime.Now - dt;
-                Console.WriteLine($"Waited {ts.TotalMilliseconds}ms for access");
-                Thread.Sleep(100);
+                Message(ConsoleColor.DarkGray,
+                    $"{node.Name}: Waited {ts.TotalSeconds} seconds for access");
 
-                Console.WriteLine($"{executionCounter++}. Executing {this.exePath} {this.exeArgs}");
-                this.Execute(this.exeDir, this.exePath, this.exeArgs);
+                Message(ConsoleColor.Green,
+                    $"{node.Name}: {executionCounter++}. Executing {node.ExePath} {node.ExeArgs}");
+                this.Execute(node.ExeDir, node.ExePath, node.ExeArgs);
             }
 
-            Console.WriteLine("Command complete");
-            Console.WriteLine("Press 'q' to quit.");
+            Message(ConsoleColor.DarkGray, "Command complete");
+            Message(ConsoleColor.DarkGray, "Press 'q' to quit.");
         }
 
-        void Message(ConsoleColor fgColor, String msg)
+        static public void Message(String msg)
         {
             String msgLevel = msg.Trim().ToUpper();
+            ConsoleColor fgColor = ConsoleColor.White;
             if (msgLevel.StartsWith("INFO"))
             {
                 if (showInfo == false)
@@ -125,6 +169,11 @@ namespace Eir.AutoValidate
             else if (msgLevel.StartsWith("ERROR"))
                 fgColor = ConsoleColor.Red;
 
+            Message(fgColor, msg);
+        }
+
+        static public void Message(ConsoleColor fgColor, String msg)
+        {
             Console.ForegroundColor = fgColor;
             Console.WriteLine(msg);
             Console.ForegroundColor = ConsoleColor.White;
@@ -175,45 +224,53 @@ namespace Eir.AutoValidate
             }
         }
 
-        void Run()
+        void Start(WatchNode node)
         {
-
             // Watch for changes in LastAccess and LastWrite times, and
             // the renaming of files or directories.
-            watcher.NotifyFilter = NotifyFilters.LastAccess
+            node.Watcher.NotifyFilter = NotifyFilters.LastAccess
                                    | NotifyFilters.LastWrite
                                    | NotifyFilters.FileName
                                    | NotifyFilters.DirectoryName;
 
-            watcher.Filter = "*.fsh";
+            node.Watcher.Filter = "*.fsh";
             // Add event handlers.
-            watcher.Changed += OnChanged;
-            watcher.Created += OnChanged;
-            watcher.Deleted += OnChanged;
-            watcher.Renamed += OnChanged;
-            this.watcher.IncludeSubdirectories = true;
+            node.Watcher.Changed += (sender, args) => node.NotifyChange();
+            node.Watcher.Created += (sender, args) => node.NotifyChange();
+            node.Watcher.Deleted += (sender, args) => node.NotifyChange();
+            node.Watcher.Renamed += (sender, args) => node.NotifyChange();
+            node.Watcher.IncludeSubdirectories = true;
 
             // Begin watching.
-            watcher.EnableRaisingEvents = true;
+            node.Watcher.EnableRaisingEvents = true;
 
-            Task runTask = new Task(() => this.RunCommand());
+            Task runTask = new Task(() => this.RunCommand(node));
             runTask.Start();
+        }
+
+        void WakeAll()
+        {
+            foreach (WatchNode node in this.watchNodes)
+                node.wake.Set();
+        }
+
+        void Run()
+        {
+            foreach (WatchNode node in this.watchNodes)
+            {
+                Start(node);
+                Thread.Sleep(1000);     // let first watches start before starting next ones.
+            }
 
             // Wait for the user to quit the program.
             do
             {
-                this.wake.Set();
+                this.WakeAll();
             } while (Console.Read() != 'q');
 
             this.doneFlag = true;
-            this.wake.Set();
-        }
 
-        void OnChanged(object source, FileSystemEventArgs e)
-        {
-            this.watcher.EnableRaisingEvents = false;
-            this.wake.Set();
-            this.watcher.EnableRaisingEvents = true;
+            this.WakeAll();
         }
 
         static Int32 Main(string[] args)
