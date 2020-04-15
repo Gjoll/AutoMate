@@ -11,12 +11,19 @@ namespace Eir.AutoValidate
     {
         class WatchNode
         {
-            public ManualResetEvent wake = new ManualResetEvent(false);
+            public ManualResetEvent wake;
             public String Name;
             public String ExeDir;
             public String ExePath;
             public String ExeArgs;
-            public FileSystemWatcher Watcher = new FileSystemWatcher();
+            public String Filter = "*.*";
+            public FileSystemWatcher Watcher;
+
+            public WatchNode()
+            {
+                Watcher = new FileSystemWatcher();
+                wake = new ManualResetEvent(false);
+            }
 
             public void NotifyChange()
             {
@@ -72,6 +79,10 @@ namespace Eir.AutoValidate
                             w.ExeDir = this.watchNodes[this.watchNodes.Count - 1].ExeDir;
                         this.watchNodes.Add(w);
                         Current().Name = GetArg("-n");
+                        break;
+
+                    case "-F":
+                        Current().Filter = GetArg("-f");
                         break;
 
                     case "-D":
@@ -233,7 +244,7 @@ namespace Eir.AutoValidate
                                    | NotifyFilters.FileName
                                    | NotifyFilters.DirectoryName;
 
-            node.Watcher.Filter = "*.fsh";
+            node.Watcher.Filter = node.Filter;
             // Add event handlers.
             node.Watcher.Changed += (sender, args) => node.NotifyChange();
             node.Watcher.Created += (sender, args) => node.NotifyChange();
