@@ -175,10 +175,18 @@ namespace Eir.AutoValidate
             }
             else if (msgLevel.StartsWith("NOTE"))
                 fgColor = ConsoleColor.Green;
-            else if (msgLevel.StartsWith("WARN"))
-                fgColor = ConsoleColor.DarkYellow;
-            else if (msgLevel.StartsWith("ERROR"))
+            else if (
+                (msgLevel.StartsWith("WARNING") == true) &&
+                (msgLevel.StartsWith("WARNINGS:") == false)
+                )
+                fgColor = ConsoleColor.Yellow;
+            else if (
+                (msgLevel.StartsWith("ERROR") == true) &&
+                (msgLevel.StartsWith("ERRORS:") == false)
+                )
                 fgColor = ConsoleColor.Red;
+            else if (msgLevel.StartsWith("INFO"))
+                fgColor = ConsoleColor.DarkGray;
 
             Message(fgColor, msg);
         }
@@ -201,7 +209,7 @@ namespace Eir.AutoValidate
                     String s = await p.StandardOutput.ReadLineAsync();
                     s = s?.Replace("\r", "")?.Replace("\n", "")?.Trim();
                     if (String.IsNullOrEmpty(s) == false)
-                        Message(ConsoleColor.White, s);
+                        Message(s);
                 } while (p.StandardOutput.EndOfStream == false);
             }
 
