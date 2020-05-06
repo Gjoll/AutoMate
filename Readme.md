@@ -7,7 +7,7 @@ This allows an immediate triggering of build tools when a source file has been m
 
 ## Command Line Options
 
-AutoMate is controlled from the commadn line. The command line options are below.
+AutoMate is controlled from the command line. The command line options are below.
 
 -n {name} Creates a new watch node and sets its name to {name}. All commands until the next -n will apply to this
 watch node.
