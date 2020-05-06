@@ -23,11 +23,14 @@ what files monitor for changes.
 
 -a {string} optional command line arguments to pass into -c command.
 
+When AutoMate is started, it continues monitoring subsequent file changed untilt he program is manually
+stopped.
+
 ## Example Usage
 
-AutoMate is a .net core console program. Typically a batch file is created that starts AutoMare with the correct options.
+AutoMate is a .net core console program. Typically a batch file is created that starts AutoMate with the correct options.
 An example of such a batch file is below.
-This creates two watchers, 
+This batch file creates two watchers, 
 a) one for the directory MFSH which executes MFISH.bat when changes in MFSH are detected and
 b) one for the directory FSH which executes FISH.bat when changes in FSH are detected
 
