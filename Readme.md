@@ -21,7 +21,7 @@ The format of this file is json. The option data is an array of watches, each
 watch defines on set of files to watch for changes to, and the commands to execute
 when any changed are detected.
 
-```jaon
+```json
 {
     "watchs": [
         {
@@ -36,7 +36,7 @@ when any changed are detected.
 
 Each watch has the following structure
 
-```jaon
+```json
 {
     "name": "{name}",
 	"filter" : "{filter}",
@@ -48,6 +48,7 @@ Each watch has the following structure
 ```
 
 | name | meaning |
+| ---- | -------------- |
 | {name} | Name of the watch |
 | {filter} | Optional file filter to specify what files to monitor for changes. Defaults to "*.*". |
 | {watch path} | Sets the directory to monitor for modified files.  |
