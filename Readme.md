@@ -5,36 +5,51 @@ the scanned items are updated.
 
 This allows an immediate triggering of build tools when a source file has been modified.
 
-## Command Line Options
+## Command Line Option
 
-AutoMate is controlled from the command line. The command line options are below.
+AutoMate has only one optional command line option. This option is the name of the 
+json configuration file that configures the watches.
+If no name is passed on the command line, then the config file defaults to
 
--n {name} Creates a new watch node and sets its name to {name}. All commands until the next -n will apply to this
-watch node.
+AutoMate.json
 
--f {filter} Sets the FileSystemWatcher.filter property. This tells the system
-what files monitor for changes.
+## Options file
 
--d {dir} sets the working dir used when a command is executed in response to a file change.
+AutoMate is controlled from a user defined json file. 
 
--w {dir} sets the directory to watch for modifed files in. 
+The format of this file is json. The option data is an array of watches, each
+watch defines on set of files to watch for changes to, and the commands to execute
+when any changed are detected.
 
--c {path} path to command to execute when fiel changed are detected. Usually a batch file.
+{
+    "watchs": [
+        {
+            -- Watch 1
+        },
+        {
+            -- Watch 2
+        }
+    ]
+}
 
--a {string} optional command line arguments to pass into -c command.
+Each watch has the following structure
+{
+    "name": "{name}",
+	"filter" : "{filter}",
+    "watchPath": "{watch path}",
+    "workingDir": "{working dir}",
+	"cmdPath": "{command path}",
+	"cmdArgs": "{command arguments}"
+}
 
-When AutoMate is started, it continues monitoring subsequent file changed untilt he program is manually
-stopped.
+{name} Name of the watch
 
-## Example Usage
+{filter} Optional file filter to specify what files to monitor for changes. Defaults to "*.*".
 
-AutoMate is a .net core console program. Typically a batch file is created that starts AutoMate with the correct options.
-An example of such a batch file is below.
-This batch file creates two watchers, 
-a) one for the directory MFSH which executes MFISH.bat when changes in MFSH are detected and
-b) one for the directory FSH which executes FISH.bat when changes in FSH are detected
+{watch path} Sets the directory to monitor for modified files. 
 
-Eir.AutoMate.exe -n MFSH -d . -w MFSH -c "MFish.bat" -n FSH -d . -w FSH -c "Fish.bat"
+{working dir} Sets the working dir used when a command is executed.
 
-MFish.bat anr Fish.bat are standard  windows batch files.
+{cmdPath} Command to execute whan modified files are detected.
 
+{cmdArgs} Optional command arguments for {cmdPath}. Defaults to "".

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -9,25 +10,39 @@ namespace Eir.AutoValidate
 {
     class Program
     {
+        class Options
+        {
+            public class Watch
+            {
+                public String name = "?";
+                public String filter = "*.*";
+                public String watchPath = "";
+                public String workingDir = ".";
+                public String cmdPath = "";
+                public String cmdArgs = "";
+            }
+            public Watch[] watchs;
+        }
+
+        bool doneFlag = false;
+        Options options;
+
         class WatchNode
         {
+            public Options.Watch Watch;
             public ManualResetEvent wake;
-            public String Name;
-            public String ExeDir;
-            public String ExePath;
-            public String ExeArgs;
-            public String Filter = "*.*";
             public FileSystemWatcher Watcher;
 
-            public WatchNode()
+            public WatchNode(Options.Watch watch)
             {
-                Watcher = new FileSystemWatcher();
-                wake = new ManualResetEvent(false);
+                this.Watch = watch;
+                this.Watcher = new FileSystemWatcher();
+                this.wake = new ManualResetEvent(false);
             }
 
             public void NotifyChange()
             {
-                Message(ConsoleColor.DarkGray, $"{this.Name} Directory '{this.Watcher.Path}' changed.");
+                Message(ConsoleColor.DarkGray, $"{this.Watch.name} Directory '{this.Watcher.Path}' changed.");
                 this.wake.Set();
             }
         }
@@ -41,73 +56,51 @@ namespace Eir.AutoValidate
         {
         }
 
+        //void CreateOptions(String path)
+        //{
+        //    Options o = new Options();
+        //    o.watchs= new Options.Watch[]
+        //    {
+        //            new Options.Watch()
+        //            {
+        //                name = "name",
+        //                cmdPath = "cmdPath"
+        //            }
+        //    };
+        //    String j = JsonConvert.SerializeObject(o);
+        //    File.WriteAllText(path, j);
+        //}
+
+        void ParseCommands(String path)
+        {
+            //CreateOptions(@"c:\Temp\AutoMate.json");
+            String fullPath = Path.GetFullPath(path);
+            if (File.Exists(path) == false)
+                throw new Exception($"Options file {path} not found");
+            String json = File.ReadAllText(path);
+            this.options = JsonConvert.DeserializeObject<Options>(json);
+            if (
+                (this.options.watchs == null) ||
+                (this.options.watchs.Length == 0)
+                )
+                throw new Exception("No watches defined");
+        }
+
         void ParseArguments(String[] args)
         {
-            WatchNode Current()
+            switch (args.Length)
             {
-                if (this.watchNodes.Count == 0)
-                    this.watchNodes.Add(new WatchNode());
-                return this.watchNodes[this.watchNodes.Count - 1];
-            }
-
-            Int32 i = 0;
-
-            String GetArg(String errorMsg, bool dashFlag = false)
-            {
-                if (i >= args.Length)
-                    throw new Exception($"Missing {errorMsg} parameter");
-
-                String arg = args[i++].Trim();
-                if ((arg[0] == '"') && (arg[arg.Length - 1] == '"'))
-                    arg = arg.Substring(1, arg.Length - 2);
-
-                bool dashParam = arg.StartsWith("-");
-                if (dashParam != dashFlag)
-                    throw new Exception($"invalid {errorMsg} parameter");
-
-                return arg;
-            }
-
-            while (i < args.Length)
-            {
-                String arg = GetArg("arg", true).ToUpper();
-                switch (arg)
-                {
-                    case "-N":
-                        WatchNode w = new WatchNode();
-                        if (this.watchNodes.Count > 0)
-                            w.ExeDir = this.watchNodes[this.watchNodes.Count - 1].ExeDir;
-                        this.watchNodes.Add(w);
-                        Current().Name = GetArg("-n");
-                        break;
-
-                    case "-F":
-                        Current().Filter = GetArg("-f");
-                        break;
-
-                    case "-D":
-                        Current().ExeDir = GetArg("-d");
-                        break;
-
-                    case "-W":
-                        Current().Watcher.Path = GetArg("-w");
-                        break;
-
-                    case "-C":
-                        Current().ExePath = GetArg("-c");
-                        break;
-
-                    case "-A":
-                        Current().ExeArgs = GetArg("-a");
-                        break;
-
-                    default:
-                        throw new Exception($"Unknown arg {arg}");
-                }
+                case 0:
+                    ParseCommands("automate.json");
+                    break;
+                case 1:
+                    ParseCommands(args[0]);
+                    break;
+                default:
+                    throw new Exception($"Unexpected parameters");
             }
         }
 
-        bool doneFlag = false;
 
         void RunCommand(WatchNode node)
         {
@@ -129,7 +122,7 @@ namespace Eir.AutoValidate
                         if (activityFlag)
                         {
                             Message(ConsoleColor.DarkGray,
-                                $"{node.Name}: Additional wake events received. Restarting wait");
+                                $"{node.Watch.name}: Additional wake events received. Restarting wait");
                         }
                     }
 
@@ -152,11 +145,11 @@ namespace Eir.AutoValidate
                 gMtx.WaitOne(1 * 1000);
                 TimeSpan ts = DateTime.Now - dt;
                 Message(ConsoleColor.DarkGray,
-                    $"{node.Name}: Waited {ts.TotalSeconds} seconds for access");
+                    $"{node.Watch.name}: Waited {ts.TotalSeconds} seconds for access");
 
                 Message(ConsoleColor.Green,
-                    $"{node.Name}: {executionCounter++}. Executing {node.ExePath} {node.ExeArgs}");
-                this.Execute(node.ExeDir, node.ExePath, node.ExeArgs);
+                    $"{node.Watch.name}: {executionCounter++}. Executing {node.Watch.cmdPath} {node.Watch.cmdArgs}");
+                this.Execute(node.Watch.workingDir, node.Watch.cmdPath, node.Watch.cmdArgs);
             }
 
             Message(ConsoleColor.DarkGray, "Command complete");
@@ -245,6 +238,7 @@ namespace Eir.AutoValidate
 
         void Start(WatchNode node)
         {
+            node.Watcher.Path = node.Watch.watchPath;
             // Watch for changes in LastAccess and LastWrite times, and
             // the renaming of files or directories.
             node.Watcher.NotifyFilter = NotifyFilters.LastAccess
@@ -252,7 +246,7 @@ namespace Eir.AutoValidate
                                    | NotifyFilters.FileName
                                    | NotifyFilters.DirectoryName;
 
-            node.Watcher.Filter = node.Filter;
+            node.Watcher.Filter = node.Watch.filter;
             // Add event handlers.
             node.Watcher.Changed += (sender, args) => node.NotifyChange();
             node.Watcher.Created += (sender, args) => node.NotifyChange();
@@ -275,8 +269,17 @@ namespace Eir.AutoValidate
 
         void Run()
         {
-            foreach (WatchNode node in this.watchNodes)
+            foreach (Options.Watch watch in this.options.watchs)
             {
+                if (String.IsNullOrEmpty(watch.name))
+                    throw new Exception("Watch field 'name' must be set");
+                if (String.IsNullOrEmpty(watch.watchPath))
+                    throw new Exception($"Watch '{watch.name}' field 'watchPath' is not set");
+                if (String.IsNullOrEmpty(watch.cmdPath))
+                    throw new Exception($"Watch '{watch.name}' field 'cmdPath' is not set");
+
+                WatchNode node = new WatchNode(watch);
+                this.watchNodes.Add(node);
                 Start(node);
                 Thread.Sleep(1000);     // let first watches start before starting next ones.
             }
