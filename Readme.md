@@ -22,24 +22,41 @@ watch defines on set of files to watch for changes to, and the commands to execu
 when any changed are detected.
 
 {
+
     "watchs": [
+
         {
+
             -- Watch 1
+
         },
+
         {
+
             -- Watch 2
+
         }
+
     ]
+
 }
 
 Each watch has the following structure
+
 {
+
     "name": "{name}",
+
 	"filter" : "{filter}",
+
     "watchPath": "{watch path}",
+
     "workingDir": "{working dir}",
+
 	"cmdPath": "{command path}",
+
 	"cmdArgs": "{command arguments}"
+
 }
 
 {name} Name of the watch
