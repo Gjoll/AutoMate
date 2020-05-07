@@ -21,43 +21,26 @@ The format of this file is json. The option data is an array of watches, each
 watch defines on set of files to watch for changes to, and the commands to execute
 when any changed are detected.
 
-{
-
-    "watchs": [
-
-        {
-
-            -- Watch 1
-
-        },
-
-        {
-
-            -- Watch 2
-
-        }
-
-    ]
-
-}
+{<br/>
+    "watchs": [<br/>
+        {<br/>
+            -- Watch 1<br/>
+        },<br/>
+        {<br/>
+            -- Watch 2<br/>
+        }<br/>
+    ]<br/>
+}<br/>
 
 Each watch has the following structure
-
-{
-
-    "name": "{name}",
-
-	"filter" : "{filter}",
-
-    "watchPath": "{watch path}",
-
-    "workingDir": "{working dir}",
-
-	"cmdPath": "{command path}",
-
-	"cmdArgs": "{command arguments}"
-
-}
+{<br/>
+    "name": "{name}",<br/>
+	"filter" : "{filter}",<br/>
+    "watchPath": "{watch path}",<br/>
+    "workingDir": "{working dir}",<br/>
+	"cmdPath": "{command path}",<br/>
+	"cmdArgs": "{command arguments}"<br/>
+}<br/>
 
 {name} Name of the watch
 
