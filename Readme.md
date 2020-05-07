@@ -33,6 +33,7 @@ when any changed are detected.
 }<br/>
 
 Each watch has the following structure
+
 {<br/>
     "name": "{name}",<br/>
 	"filter" : "{filter}",<br/>
