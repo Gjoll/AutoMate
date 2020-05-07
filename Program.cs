@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -12,16 +13,21 @@ namespace Eir.AutoValidate
     {
         class Options
         {
+            public class Command
+            {
+                public String workingDir = ".";
+                public String cmdPath = "";
+                public String cmdArgs = "";
+            }
+
             public class Watch
             {
                 public String name = "?";
                 public String filter = "*.*";
                 public String watchPath = "";
-                public String workingDir = ".";
-                public String cmdPath = "";
-                public String cmdArgs = "";
+                public Command[] commands = new Command[0];
             }
-            public Watch[] watchs;
+            public Watch[] watchs = new Watch[0];
         }
 
         bool doneFlag = false;
@@ -147,9 +153,12 @@ namespace Eir.AutoValidate
                 Message(ConsoleColor.DarkGray,
                     $"{node.Watch.name}: Waited {ts.TotalSeconds} seconds for access");
 
-                Message(ConsoleColor.Green,
-                    $"{node.Watch.name}: {executionCounter++}. Executing {node.Watch.cmdPath} {node.Watch.cmdArgs}");
-                this.Execute(node.Watch.workingDir, node.Watch.cmdPath, node.Watch.cmdArgs);
+                foreach (Options.Command command in node.Watch.commands)
+                {
+                    Message(ConsoleColor.Green,
+                        $"{node.Watch.name}: {executionCounter++}. Executing {command.cmdPath} {command.cmdArgs}");
+                    this.Execute(command.workingDir, command.cmdPath, command.cmdArgs);
+                }
             }
 
             Message(ConsoleColor.DarkGray, "Command complete");
@@ -217,6 +226,20 @@ namespace Eir.AutoValidate
                 } while (p.StandardError.EndOfStream == false);
             }
 
+            Environment.SetEnvironmentVariable("ApplicationData", Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData));
+            Environment.SetEnvironmentVariable("LocalApplicationData", Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData));
+            Environment.SetEnvironmentVariable("MyDocuments", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments));
+            Environment.SetEnvironmentVariable("ProgramFiles", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles));
+            Environment.SetEnvironmentVariable("ProgramFilesX86", Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86));
+            Environment.SetEnvironmentVariable("Programs", Environment.GetFolderPath(Environment.SpecialFolder.Programs));
+            Environment.SetEnvironmentVariable("System", Environment.GetFolderPath(Environment.SpecialFolder.System));
+            Environment.SetEnvironmentVariable("SystemX86", Environment.GetFolderPath(Environment.SpecialFolder.SystemX86));
+            Environment.SetEnvironmentVariable("UserProfile", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            Environment.SetEnvironmentVariable("Windows", Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+            workingDir = Environment.ExpandEnvironmentVariables(workingDir);
+            executablePath = Environment.ExpandEnvironmentVariables(executablePath);
+            arguments = Environment.ExpandEnvironmentVariables(arguments);
+
             using (Process p = new Process())
             {
                 p.StartInfo.FileName = executablePath;
@@ -275,8 +298,13 @@ namespace Eir.AutoValidate
                     throw new Exception("Watch field 'name' must be set");
                 if (String.IsNullOrEmpty(watch.watchPath))
                     throw new Exception($"Watch '{watch.name}' field 'watchPath' is not set");
-                if (String.IsNullOrEmpty(watch.cmdPath))
-                    throw new Exception($"Watch '{watch.name}' field 'cmdPath' is not set");
+                if ((watch.commands == null) ||  (watch.commands.Length == 0))
+                    throw new Exception($"Watch '{watch.name}' field no commands defined");
+                foreach (Options.Command command in watch.commands)
+                {
+                    if (String.IsNullOrEmpty(command.cmdPath))
+                        throw new Exception($"Watch '{watch.name}' field 'cmdPath' is not set");
+                }
 
                 WatchNode node = new WatchNode(watch);
                 this.watchNodes.Add(node);

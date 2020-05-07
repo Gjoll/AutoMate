@@ -21,36 +21,56 @@ The format of this file is json. The option data is an array of watches, each
 watch defines on set of files to watch for changes to, and the commands to execute
 when any changed are detected.
 
-{<br/>
-    "watchs": [<br/>
-        {<br/>
-            -- Watch 1<br/>
-        },<br/>
-        {<br/>
-            -- Watch 2<br/>
-        }<br/>
-    ]<br/>
-}<br/>
+```jaon
+{
+    "watchs": [
+        {
+            -- Watch 1
+        },
+        {
+            -- Watch 2
+        }
+    ]
+}
+```
 
 Each watch has the following structure
 
-{<br/>
-    "name": "{name}",<br/>
-	"filter" : "{filter}",<br/>
-    "watchPath": "{watch path}",<br/>
-    "workingDir": "{working dir}",<br/>
-	"cmdPath": "{command path}",<br/>
-	"cmdArgs": "{command arguments}"<br/>
-}<br/>
+```jaon
+{
+    "name": "{name}",
+	"filter" : "{filter}",
+    "watchPath": "{watch path}",
+    "workingDir": "{working dir}",
+	"cmdPath": "{command path}",
+	"cmdArgs": "{command arguments}"
+}
+```
 
-{name} Name of the watch
+| name | meaning |
+| {name} | Name of the watch |
+| {filter} | Optional file filter to specify what files to monitor for changes. Defaults to "*.*". |
+| {watch path} | Sets the directory to monitor for modified files.  |
+| {working dir} | Sets the working dir used when a command is executed. |
+| {cmdPath} | Command to execute whan modified files are detected. |
+| {cmdArgs} | Optional command arguments for {cmdPath}. Defaults to "". |
 
-{filter} Optional file filter to specify what files to monitor for changes. Defaults to "*.*".
 
-{watch path} Sets the directory to monitor for modified files. 
+## Environment Variables
 
-{working dir} Sets the working dir used when a command is executed.
+the command paths, arguments and working direcories may contain 
+windows environment variables ('%{name}%') which will be expanded when run.
 
-{cmdPath} Command to execute whan modified files are detected.
+The following special environment variables will be set by AutoMate when running:
 
-{cmdArgs} Optional command arguments for {cmdPath}. Defaults to "".
+| Variable Name | Variable Value |
+| ApplicationData | Environment.SpecialFolder.ApplicationData |
+| LocalApplicationData | Environment.SpecialFolder.LocalApplicationData |
+| MyDocuments | Environment.SpecialFolder.MyDocuments |
+| ProgramFiles | Environment.SpecialFolder.ProgramFiles |
+| ProgramFilesX86 | Environment.SpecialFolder.ProgramFilesX86 |
+| Programs | Environment.SpecialFolder.Programs |
+| System | Environment.SpecialFolder.System |
+| SystemX86 | Environment.SpecialFolder.SystemX86 |
+| UserProfile | Environment.SpecialFolder.UserProfile |
+| Windows | Environment.SpecialFolder.Windows |
