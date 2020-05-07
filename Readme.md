@@ -64,6 +64,7 @@ windows environment variables ('%{name}%') which will be expanded when run.
 The following special environment variables will be set by AutoMate when running:
 
 | Variable Name | Variable Value |
+| ------------- | -------------- |
 | ApplicationData | Environment.SpecialFolder.ApplicationData |
 | LocalApplicationData | Environment.SpecialFolder.LocalApplicationData |
 | MyDocuments | Environment.SpecialFolder.MyDocuments |
