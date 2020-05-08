@@ -14,7 +14,7 @@ updating their scripts as changes to this tool occur.
 
 dotnet tool install --global Eir.AutoMate --version {version>
 
-e.g. dotnet tool install --global Eir.AutoMate --version 1.1.0
+e.g. dotnet tool install --global Eir.AutoMate --version 1.2.0
 
 ## Command Line Option
 
@@ -51,7 +51,7 @@ Each watch has the following structure
 {
     "name": "{name}",
 	"filter" : "{filter}",
-    "watchPath": "{watch path}",
+    "watchPaths": ["{watch path 1}, {watch path 2}]",
     "workingDir": "{working dir}",
 	"cmdPath": "{command path}",
 	"cmdArgs": "{command arguments}"
@@ -62,7 +62,7 @@ Each watch has the following structure
 | ---- | -------------- |
 | {name} | Name of the watch |
 | {filter} | Optional file filter to specify what files to monitor for changes. Defaults to "*.*". |
-| {watch path} | Sets the directory to monitor for modified files.  |
+| {watch paths} | Array of directory to monitor for modified files.  |
 | {working dir} | Sets the working dir used when a command is executed. |
 | {cmdPath} | Command to execute whan modified files are detected. |
 | {cmdArgs} | Optional command arguments for {cmdPath}. Defaults to "". |
