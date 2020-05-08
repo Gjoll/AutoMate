@@ -24,7 +24,7 @@ namespace Eir.AutoValidate
             {
                 public String name = "?";
                 public String filter = "*.*";
-                public String watchPath = "";
+                public String[] watchPaths = new String[0];
                 public Command[] commands = new Command[0];
             }
             public Watch[] watchs = new Watch[0];
@@ -37,18 +37,17 @@ namespace Eir.AutoValidate
         {
             public Options.Watch Watch;
             public ManualResetEvent wake;
-            public FileSystemWatcher Watcher;
+            public List<FileSystemWatcher> Watchers = new List<FileSystemWatcher>();
 
             public WatchNode(Options.Watch watch)
             {
                 this.Watch = watch;
-                this.Watcher = new FileSystemWatcher();
                 this.wake = new ManualResetEvent(false);
             }
 
             public void NotifyChange()
             {
-                Message(ConsoleColor.DarkGray, $"{this.Watch.name} Directory '{this.Watcher.Path}' changed.");
+                //$Message(ConsoleColor.DarkGray, $"{this.Watch.name} Directory '{this.Watcher.Path}' changed.");
                 this.wake.Set();
             }
         }
@@ -261,24 +260,29 @@ namespace Eir.AutoValidate
 
         void Start(WatchNode node)
         {
-            node.Watcher.Path = node.Watch.watchPath;
-            // Watch for changes in LastAccess and LastWrite times, and
-            // the renaming of files or directories.
-            node.Watcher.NotifyFilter = NotifyFilters.LastAccess
-                                   | NotifyFilters.LastWrite
-                                   | NotifyFilters.FileName
-                                   | NotifyFilters.DirectoryName;
+            foreach (String watchPath in node.Watch.watchPaths)
+            {
+                FileSystemWatcher watcher = new FileSystemWatcher();
+                node.Watchers.Add(watcher);
+                watcher.Path = watchPath;
+                // Watch for changes in LastAccess and LastWrite times, and
+                // the renaming of files or directories.
+                watcher.NotifyFilter = NotifyFilters.LastAccess
+                                       | NotifyFilters.LastWrite
+                                       | NotifyFilters.FileName
+                                       | NotifyFilters.DirectoryName;
 
-            node.Watcher.Filter = node.Watch.filter;
-            // Add event handlers.
-            node.Watcher.Changed += (sender, args) => node.NotifyChange();
-            node.Watcher.Created += (sender, args) => node.NotifyChange();
-            node.Watcher.Deleted += (sender, args) => node.NotifyChange();
-            node.Watcher.Renamed += (sender, args) => node.NotifyChange();
-            node.Watcher.IncludeSubdirectories = true;
+                watcher.Filter = node.Watch.filter;
+                // Add event handlers.
+                watcher.Changed += (sender, args) => node.NotifyChange();
+                watcher.Created += (sender, args) => node.NotifyChange();
+                watcher.Deleted += (sender, args) => node.NotifyChange();
+                watcher.Renamed += (sender, args) => node.NotifyChange();
+                watcher.IncludeSubdirectories = true;
 
-            // Begin watching.
-            node.Watcher.EnableRaisingEvents = true;
+                // Begin watching.
+                watcher.EnableRaisingEvents = true;
+            }
 
             Task runTask = new Task(() => this.RunCommand(node));
             runTask.Start();
@@ -296,8 +300,8 @@ namespace Eir.AutoValidate
             {
                 if (String.IsNullOrEmpty(watch.name))
                     throw new Exception("Watch field 'name' must be set");
-                if (String.IsNullOrEmpty(watch.watchPath))
-                    throw new Exception($"Watch '{watch.name}' field 'watchPath' is not set");
+                if (watch.watchPaths.Length == 0)
+                    throw new Exception($"Watch '{watch.name}' field 'watchPaths' is not set");
                 if ((watch.commands == null) ||  (watch.commands.Length == 0))
                     throw new Exception($"Watch '{watch.name}' field no commands defined");
                 foreach (Options.Command command in watch.commands)
