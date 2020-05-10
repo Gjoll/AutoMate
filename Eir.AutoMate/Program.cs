@@ -45,9 +45,9 @@ namespace Eir.AutoValidate
                 this.wake = new ManualResetEvent(false);
             }
 
-            public void NotifyChange()
+            public void NotifyChange(FileSystemWatcher watcher)
             {
-                //$Message(ConsoleColor.DarkGray, $"{this.Watch.name} Directory '{this.Watcher.Path}' changed.");
+                Trace($"{this.Watch.name} Directory '{watcher.Path}' changed.");
                 this.wake.Set();
             }
         }
@@ -126,8 +126,7 @@ namespace Eir.AutoValidate
                         node.wake.Reset();
                         if (activityFlag)
                         {
-                            Message(ConsoleColor.DarkGray,
-                                $"{node.Watch.name}: Additional wake events received. Restarting wait");
+                            Trace($"{node.Watch.name}: Additional wake events received. Restarting wait");
                         }
                     }
 
@@ -149,8 +148,7 @@ namespace Eir.AutoValidate
                 DateTime dt = DateTime.Now;
                 gMtx.WaitOne(1 * 1000);
                 TimeSpan ts = DateTime.Now - dt;
-                Message(ConsoleColor.DarkGray,
-                    $"{node.Watch.name}: Waited {ts.TotalSeconds} seconds for access");
+                Trace($"{node.Watch.name}: Waited {ts.TotalSeconds} seconds for access");
 
                 foreach (Options.Command command in node.Watch.commands)
                 {
@@ -163,6 +161,12 @@ namespace Eir.AutoValidate
             Message(ConsoleColor.DarkGray, "Command complete");
             Message(ConsoleColor.DarkGray, "Press 'q' to quit.");
         }
+
+        static public void Trace(String msg)
+        {
+            //Message(ConsoleColor.DarkGray, msg);
+        }
+
 
         static public void Message(String msg)
         {
@@ -274,10 +278,10 @@ namespace Eir.AutoValidate
 
                 watcher.Filter = node.Watch.filter;
                 // Add event handlers.
-                watcher.Changed += (sender, args) => node.NotifyChange();
-                watcher.Created += (sender, args) => node.NotifyChange();
-                watcher.Deleted += (sender, args) => node.NotifyChange();
-                watcher.Renamed += (sender, args) => node.NotifyChange();
+                watcher.Changed += (sender, args) => node.NotifyChange(watcher);
+                watcher.Created += (sender, args) => node.NotifyChange(watcher);
+                watcher.Deleted += (sender, args) => node.NotifyChange(watcher);
+                watcher.Renamed += (sender, args) => node.NotifyChange(watcher);
                 watcher.IncludeSubdirectories = true;
 
                 // Begin watching.

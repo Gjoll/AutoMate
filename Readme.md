@@ -5,16 +5,16 @@ the scanned items are updated.
 
 This allows an immediate triggering of build tools when a source file has been modified.
 
-This program is undergoing a lot of changes. ANyone is welcome to use it, 
+This program is undergoing a lot of changes. Anyone is welcome to use it, 
 but at this point in time I would not recommend using it for a production product;
-I would recomment only using this for development projects by users who are comfortable
-updating their scripts as changes to this tool occur.
+I would recommend only using this for development projects by users who are comfortable
+updating their scripts as changes to this tool occur, and are comfrotable using software that is not fully tested.
 
 ## Installation
 
 dotnet tool install --global Eir.AutoMate --version {version>
 
-e.g. dotnet tool install --global Eir.AutoMate --version 1.2.0
+e.g. dotnet tool install --global Eir.AutoMate --version 1.3.0
 
 ## Command Line Option
 
