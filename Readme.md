@@ -14,7 +14,7 @@ updating their scripts as changes to this tool occur, and are comfrotable using 
 
 dotnet tool install --global Eir.AutoMate --version {version>
 
-e.g. dotnet tool install --global Eir.AutoMate --version 1.3.0
+e.g. dotnet tool install --global Eir.AutoMate --version 1.4.0
 
 ## Command Line Option
 
