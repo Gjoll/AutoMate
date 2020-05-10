@@ -335,6 +335,7 @@ namespace Eir.AutoValidate
         {
             try
             {
+                Console.OutputEncoding = System.Text.Encoding.UTF8;
                 Program p = new Program();
                 p.ParseArguments(args);
                 p.Run();
