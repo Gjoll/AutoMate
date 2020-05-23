@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -28,31 +29,36 @@ namespace Eir.AutoValidate
                 public Command[] commands = new Command[0];
             }
             public Watch[] watchs = new Watch[0];
+
+            public Int32 clearScreenTime = 30;
         }
 
         bool doneFlag = false;
         Options options;
+        DateTime lastMessageTime = DateTime.Now;
 
         class WatchNode
         {
             public Options.Watch Watch;
             public ManualResetEvent wake;
             public List<FileSystemWatcher> Watchers = new List<FileSystemWatcher>();
+            private Program p;
 
-            public WatchNode(Options.Watch watch)
+            public WatchNode(Program p, Options.Watch watch)
             {
+                this.p = p;
                 this.Watch = watch;
                 this.wake = new ManualResetEvent(false);
             }
 
             public void NotifyChange(FileSystemWatcher watcher)
             {
-                Trace($"{this.Watch.name} Directory '{watcher.Path}' changed.");
+                this.p.Trace($"{this.Watch.name} Directory '{watcher.Path}' changed.");
                 this.wake.Set();
             }
         }
 
-        static Boolean showInfo = false;
+        Boolean showInfo = false;
 
         Int32 executionCounter = 1;
         List<WatchNode> watchNodes = new List<WatchNode>();
@@ -83,7 +89,7 @@ namespace Eir.AutoValidate
             if (File.Exists(path) == false)
                 throw new Exception($"Options file {path} not found");
             String json = File.ReadAllText(path);
-            this.options = JsonConvert.DeserializeObject<Options>(json);
+            options = JsonConvert.DeserializeObject<Options>(json);
             if (
                 (this.options.watchs == null) ||
                 (this.options.watchs.Length == 0)
@@ -162,13 +168,13 @@ namespace Eir.AutoValidate
             Message(ConsoleColor.DarkGray, "Press 'q' to quit.");
         }
 
-        static public void Trace(String msg)
+        public void Trace(String msg)
         {
             //Message(ConsoleColor.DarkGray, msg);
         }
 
 
-        static public void Message(String msg)
+        public void Message(String msg)
         {
             String msgLevel = msg.Trim().ToUpper();
             ConsoleColor fgColor = ConsoleColor.White;
@@ -196,11 +202,21 @@ namespace Eir.AutoValidate
             Message(fgColor, msg);
         }
 
-        static public void Message(ConsoleColor fgColor, String msg)
+        public void Message(ConsoleColor fgColor, String msg)
         {
-            Console.ForegroundColor = fgColor;
-            Console.WriteLine(msg);
-            Console.ForegroundColor = ConsoleColor.White;
+            lock (typeof(Program))
+            {
+                DateTime now = DateTime.Now;
+                Int32 minutes = this.options.clearScreenTime / 60;
+                Int32 seconds = this.options.clearScreenTime % 60;
+                DateTime msgTimeout = lastMessageTime + new TimeSpan(0, minutes, seconds);
+                if (now > msgTimeout)
+                    Console.Clear();
+                lastMessageTime = now;
+                Console.ForegroundColor = fgColor;
+                Console.WriteLine(msg);
+                Console.ForegroundColor = ConsoleColor.White;
+            }
         }
 
         protected Boolean Execute(String workingDir,
@@ -314,7 +330,7 @@ namespace Eir.AutoValidate
                         throw new Exception($"Watch '{watch.name}' field 'cmdPath' is not set");
                 }
 
-                WatchNode node = new WatchNode(watch);
+                WatchNode node = new WatchNode(this, watch);
                 this.watchNodes.Add(node);
                 Start(node);
                 Thread.Sleep(1000);     // let first watches start before starting next ones.

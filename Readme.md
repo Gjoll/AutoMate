@@ -40,10 +40,14 @@ when any changed are detected.
         },
         {
             -- Watch 2
-        }
+        },
+    "clearScreenTime": 30
     ]
 }
 ```
+
+clearScreenTime is in seconds. If a watch is triggered this many seconds after the last watch was 
+triggered, the console screen will be cleared of all previous output.
 
 Each watch has the following structure
 
