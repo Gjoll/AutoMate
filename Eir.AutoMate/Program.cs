@@ -142,6 +142,7 @@ namespace Eir.AutoValidate
 
         void ExecuteCommand(WatchNode node)
         {
+            Int32 executionNum = executionCounter++;
             using (Mutex gMtx = new Mutex(false, "AutoMate"))
             {
                 //Console.Clear();
@@ -153,13 +154,15 @@ namespace Eir.AutoValidate
                 foreach (Options.Command command in node.Watch.commands)
                 {
                     Message(ConsoleColor.Green,
-                        $"{node.Watch.name}: {executionCounter++}. Executing {command.cmdPath} {command.cmdArgs}");
-                    this.Execute(command.workingDir, command.cmdPath, command.cmdArgs);
+                        executionNum,
+                        $"{node.Watch.name}: Executing {command.cmdPath} {command.cmdArgs}");
+                    this.Execute(executionNum, command.workingDir, command.cmdPath, command.cmdArgs);
                 }
             }
 
-            Message(ConsoleColor.DarkGray, "Command complete");
-            Message(ConsoleColor.DarkGray, "Press 'q' to quit.");
+            Message(ConsoleColor.DarkGray,
+                    executionNum,
+                    $"Command complete. 'q'->quit, enter->run all.");
         }
 
         static public void Trace(String msg)
@@ -193,17 +196,25 @@ namespace Eir.AutoValidate
             else if (msgLevel.StartsWith("INFO"))
                 fgColor = ConsoleColor.DarkGray;
 
-            Message(fgColor, msg);
-        }
-
-        static public void Message(ConsoleColor fgColor, String msg)
-        {
             Console.ForegroundColor = fgColor;
             Console.WriteLine(msg);
             Console.ForegroundColor = ConsoleColor.White;
         }
 
-        protected Boolean Execute(String workingDir,
+        static public void Message(ConsoleColor fgColor, 
+            Int32 executionNumber,
+            String msg)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write($"[{executionNumber}] ");
+
+            Console.ForegroundColor = fgColor;
+            Console.WriteLine(msg);
+            Console.ForegroundColor = ConsoleColor.White;
+        }
+
+        protected Boolean Execute(Int32 executionNum,
+            String workingDir,
             String executablePath,
             String arguments)
         {
@@ -214,7 +225,7 @@ namespace Eir.AutoValidate
                     String s = await p.StandardOutput.ReadLineAsync();
                     s = s?.Replace("\r", "")?.Replace("\n", "")?.Trim();
                     if (String.IsNullOrEmpty(s) == false)
-                        Message(s);
+                        Message(ConsoleColor.White, executionNum, s);
                 } while (p.StandardOutput.EndOfStream == false);
             }
 
@@ -225,7 +236,7 @@ namespace Eir.AutoValidate
                     String s = await p.StandardError.ReadLineAsync();
                     s = s?.Replace("\r", "")?.Replace("\n", "")?.Trim();
                     if (String.IsNullOrEmpty(s) == false)
-                        Message(ConsoleColor.Red, s);
+                        Message(ConsoleColor.Red, executionNum, s);
                 } while (p.StandardError.EndOfStream == false);
             }
 
