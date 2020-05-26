@@ -5,7 +5,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>AutoMate</ToolCommandName>
-    <Version>1.5.0</Version>
+    <Version>1.6.0</Version>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageProjectUrl>https://github.com/Gjoll/Eir.AutoMate</PackageProjectUrl>
     <PackageLicenseFile>LICENSE</PackageLicenseFile>
