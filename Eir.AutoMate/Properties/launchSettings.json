@@ -1,13 +1,9 @@
 {
   "profiles": {
-    "AutoValidate": {
+    "Start": {
       "commandName": "Project",
-<<<<<<< HEAD
-      "workingDirectory": "C:\\Development\\HL7\\BreastRadiologyProfilesV3\\Projects\\AutoMate"
-=======
-      "commandLineArgs": "MFshBuild.automate",
-      "workingDirectory": "C:\\Development\\HL7\\BreastRadiologyProfilesV3\\Projects"
->>>>>>> d60f07201c0596e926c73829298e3bf0ee9135ba
+      "workingDirectory": "C:\\Development\\HL7\\BreastRadiologyProfilesV3\\Projects\\AutoMate",
+      "ErrorString": "Invalid property identifier character: <. Path 'profiles.AutoValidate.commandName', line 5, position 0."
     }
   }
 }

@@ -132,9 +132,7 @@ namespace Eir.AutoValidate
                         activityFlag = node.wake.WaitOne(1000);
                         node.wake.Reset();
                         if (activityFlag)
-                        {
                             Trace($"{node.Watch.name}: Additional wake events received. Restarting wait");
-                        }
                     }
 
                     this.ExecuteCommand(node);
@@ -177,7 +175,7 @@ namespace Eir.AutoValidate
             if (this.options.traceFlag == false)
                 return;
 
-            Message(ConsoleColor.Gray, -1, msg);
+            Message(ConsoleColor.Yellow, -1, msg);
         }
 
 
