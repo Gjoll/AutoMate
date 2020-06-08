@@ -31,6 +31,7 @@ namespace Eir.AutoValidate
             public Watch[] watchs = new Watch[0];
 
             public Int32 clearScreenTime = 30;
+            public bool traceFlag = false;
         }
 
         bool doneFlag = false;
@@ -53,7 +54,7 @@ namespace Eir.AutoValidate
 
             public void NotifyChange(FileSystemWatcher watcher)
             {
-                this.p.Trace($"{this.Watch.name} Directory '{watcher.Path}' changed.");
+                this.p.Trace($"{this.Watch.name} '{watcher.Path}' changed.");
                 this.wake.Set();
             }
         }
@@ -173,7 +174,10 @@ namespace Eir.AutoValidate
 
         public void Trace(String msg)
         {
-            //Message(ConsoleColor.DarkGray, msg);
+            if (this.options.traceFlag == false)
+                return;
+
+            Message(ConsoleColor.Gray, -1, msg);
         }
 
 
@@ -222,7 +226,8 @@ namespace Eir.AutoValidate
                 lastMessageTime = now;
 
                 Console.ForegroundColor = ConsoleColor.DarkGray;
-                Console.Write($"[{executionNumber}] ");
+                if (executionNumber > 0)
+                    Console.Write($"[{executionNumber}] ");
 
                 Console.ForegroundColor = fgColor;
                 Console.WriteLine(msg);
@@ -345,7 +350,7 @@ namespace Eir.AutoValidate
                 WatchNode node = new WatchNode(this, watch);
                 this.watchNodes.Add(node);
                 Start(node);
-                Thread.Sleep(1000);     // let first watches start before starting next ones.
+                Thread.Sleep(1000);     // let first watch start before starting next ones.
             }
 
             // Wait for the user to quit the program.
