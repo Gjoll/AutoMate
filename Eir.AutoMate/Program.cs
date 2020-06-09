@@ -152,7 +152,7 @@ namespace Eir.AutoValidate
             {
                 //Console.Clear();
                 DateTime dt = DateTime.Now;
-                gMtx.WaitOne(1 * 1000);
+                gMtx.WaitOne(60 * 1000);
                 TimeSpan ts = DateTime.Now - dt;
                 Trace($"{node.Watch.name}: Waited {ts.TotalSeconds} seconds for access");
 
@@ -163,6 +163,7 @@ namespace Eir.AutoValidate
                         $"{node.Watch.name}: Executing {command.cmdPath} {command.cmdArgs}");
                     this.Execute(executionNum, command.workingDir, command.cmdPath, command.cmdArgs);
                 }
+                gMtx.ReleaseMutex();
             }
 
             Message(ConsoleColor.DarkGray,
@@ -326,7 +327,10 @@ namespace Eir.AutoValidate
         void WakeAll()
         {
             foreach (WatchNode node in this.watchNodes)
+            {
                 node.wake.Set();
+                Thread.Sleep(1000);
+            }
         }
 
         void Run()
@@ -348,7 +352,6 @@ namespace Eir.AutoValidate
                 WatchNode node = new WatchNode(this, watch);
                 this.watchNodes.Add(node);
                 Start(node);
-                Thread.Sleep(1000);     // let first watch start before starting next ones.
             }
 
             // Wait for the user to quit the program.
