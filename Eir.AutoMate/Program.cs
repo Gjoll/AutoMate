@@ -30,7 +30,7 @@ namespace Eir.AutoValidate
             }
             public Watch[] watchs = new Watch[0];
 
-            public Int32 clearScreenTime = 30;
+            public Int32 clearScreenTime = 60;
             public bool traceFlag = false;
         }
 
@@ -150,7 +150,6 @@ namespace Eir.AutoValidate
             Int32 executionNum = executionCounter++;
             using (Mutex gMtx = new Mutex(false, "AutoMate"))
             {
-                //Console.Clear();
                 DateTime dt = DateTime.Now;
                 gMtx.WaitOne(60 * 1000);
                 TimeSpan ts = DateTime.Now - dt;
@@ -163,6 +162,8 @@ namespace Eir.AutoValidate
                         $"{node.Watch.name}: Executing {command.cmdPath} {command.cmdArgs}");
                     this.Execute(executionNum, command.workingDir, command.cmdPath, command.cmdArgs);
                 }
+
+                node.wake.Reset();
                 gMtx.ReleaseMutex();
             }
 
@@ -324,6 +325,14 @@ namespace Eir.AutoValidate
             runTask.Start();
         }
 
+        void RunAll()
+        {
+            foreach (WatchNode node in this.watchNodes)
+            {
+                this.ExecuteCommand(node);
+            }
+        }
+
         void WakeAll()
         {
             foreach (WatchNode node in this.watchNodes)
@@ -357,7 +366,7 @@ namespace Eir.AutoValidate
             // Wait for the user to quit the program.
             do
             {
-                this.WakeAll();
+                RunAll();
             } while (Console.Read() != 'q');
 
             this.doneFlag = true;
