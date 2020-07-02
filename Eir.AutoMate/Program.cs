@@ -328,9 +328,7 @@ namespace Eir.AutoValidate
         void RunAll()
         {
             foreach (WatchNode node in this.watchNodes)
-            {
-                this.ExecuteCommand(node);
-            }
+                node.wake.Set();
         }
 
         void WakeAll()
