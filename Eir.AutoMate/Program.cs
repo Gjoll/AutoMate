@@ -34,33 +34,33 @@ namespace Eir.AutoValidate
             public bool traceFlag = false;
         }
 
-        bool doneFlag = false;
-        Options options;
-        DateTime lastMessageTime = DateTime.Now;
-
         class WatchNode
         {
+            public DateTime LastPingTime;
+            public bool RunFlag = true;
             public Options.Watch Watch;
-            public ManualResetEvent wake;
             public List<FileSystemWatcher> Watchers = new List<FileSystemWatcher>();
-            private Program p;
 
-            public WatchNode(Program p, Options.Watch watch)
+            public WatchNode(Options.Watch watch)
             {
-                this.p = p;
                 this.Watch = watch;
-                this.wake = new ManualResetEvent(false);
-            }
-
-            public void NotifyChange(FileSystemWatcher watcher)
-            {
-                this.p.Trace($"{this.Watch.name} '{watcher.Path}' changed.");
-                this.wake.Set();
             }
         }
 
-        Boolean showInfo = false;
+        void NotifyChange(WatchNode node, FileSystemWatcher watcher)
+        {
+            this.Trace($"{node.Watch.name} '{watcher.Path}' changed.");
+            node.RunFlag = true;
+            this.wake.Set();
+        }
 
+        public ManualResetEvent wake = new ManualResetEvent(false);
+
+        Options options;
+        DateTime lastMessageTime = DateTime.Now;
+
+        Boolean showInfo = false;
+        bool doneFlag = false;
         Int32 executionCounter = 1;
         List<WatchNode> watchNodes = new List<WatchNode>();
 
@@ -114,33 +114,55 @@ namespace Eir.AutoValidate
         }
 
 
-        void RunCommand(WatchNode node)
+        bool RunOneCommand(out Int32 sleepTime)
         {
-            while (true)
+            sleepTime = -1;
+            foreach (WatchNode node in this.watchNodes)
             {
-                try
-                {
-                    node.wake.WaitOne();
-                    node.wake.Reset();
+                // Wait for no events for timeout.
+                if (this.doneFlag)
+                    return false;
 
-                    // Wait for no events for timeout.
-                    bool activityFlag = true;
-                    while (activityFlag == true)
+                if (node.RunFlag == true)
+                {
+                    Int32 timeSinceLastPing = (Int32)(DateTime.Now - node.LastPingTime).TotalMilliseconds;
+                    if (timeSinceLastPing < 1000)
                     {
-                        if (this.doneFlag)
-                            return;
-                        activityFlag = node.wake.WaitOne(1000);
-                        node.wake.Reset();
-                        if (activityFlag)
-                            Trace($"{node.Watch.name}: Additional wake events received. Restarting wait");
+                        sleepTime = (Int32)(1000 - timeSinceLastPing);
+                        return false;
                     }
 
-                    this.ExecuteCommand(node);
+                    try
+                    {
+                        this.ExecuteCommand(node);
+                        node.RunFlag = false;
+                        node.LastPingTime = DateTime.Now;
+                    }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                    }
+                    return true;
                 }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
-                }
+            }
+
+            return false;
+        }
+
+        void RunCommands(out Int32 sleepTime)
+        {
+            while (RunOneCommand(out sleepTime))
+                ;
+        }
+
+        void RunCommand()
+        {
+            Int32 sleepTime = -1;
+            while (true)
+            {
+                this.wake.WaitOne(sleepTime);
+                this.wake.Reset();
+                this.RunCommands(out sleepTime);
             }
         }
 
@@ -163,7 +185,6 @@ namespace Eir.AutoValidate
                     this.Execute(executionNum, command.workingDir, command.cmdPath, command.cmdArgs);
                 }
 
-                node.wake.Reset();
                 gMtx.ReleaseMutex();
             }
 
@@ -210,7 +231,7 @@ namespace Eir.AutoValidate
             Message(fgColor, executionNumber, msg);
         }
 
-        public void Message(ConsoleColor fgColor, 
+        public void Message(ConsoleColor fgColor,
                             Int32 executionNumber,
                             String msg)
         {
@@ -310,32 +331,14 @@ namespace Eir.AutoValidate
 
                 watcher.Filter = node.Watch.filter;
                 // Add event handlers.
-                watcher.Changed += (sender, args) => node.NotifyChange(watcher);
-                watcher.Created += (sender, args) => node.NotifyChange(watcher);
-                watcher.Deleted += (sender, args) => node.NotifyChange(watcher);
-                watcher.Renamed += (sender, args) => node.NotifyChange(watcher);
+                watcher.Changed += (sender, args) => NotifyChange(node, watcher);
+                watcher.Created += (sender, args) => NotifyChange(node, watcher);
+                watcher.Deleted += (sender, args) => NotifyChange(node, watcher);
+                watcher.Renamed += (sender, args) => NotifyChange(node, watcher);
                 watcher.IncludeSubdirectories = true;
 
                 // Begin watching.
                 watcher.EnableRaisingEvents = true;
-            }
-
-            Task runTask = new Task(() => this.RunCommand(node));
-            runTask.Start();
-        }
-
-        void RunAll()
-        {
-            foreach (WatchNode node in this.watchNodes)
-                node.wake.Set();
-        }
-
-        void WakeAll()
-        {
-            foreach (WatchNode node in this.watchNodes)
-            {
-                node.wake.Set();
-                Thread.Sleep(1000);
             }
         }
 
@@ -347,7 +350,7 @@ namespace Eir.AutoValidate
                     throw new Exception("Watch field 'name' must be set");
                 if (watch.watchPaths.Length == 0)
                     throw new Exception($"Watch '{watch.name}' field 'watchPaths' is not set");
-                if ((watch.commands == null) ||  (watch.commands.Length == 0))
+                if ((watch.commands == null) || (watch.commands.Length == 0))
                     throw new Exception($"Watch '{watch.name}' field no commands defined");
                 foreach (Options.Command command in watch.commands)
                 {
@@ -355,20 +358,24 @@ namespace Eir.AutoValidate
                         throw new Exception($"Watch '{watch.name}' field 'cmdPath' is not set");
                 }
 
-                WatchNode node = new WatchNode(this, watch);
+                WatchNode node = new WatchNode(watch);
                 this.watchNodes.Add(node);
                 Start(node);
             }
 
+            Task runTask = new Task(() => this.RunCommand());
+            runTask.Start();
+
+            foreach (WatchNode node in this.watchNodes)
+                node.LastPingTime = DateTime.Now;
+
             // Wait for the user to quit the program.
             do
             {
-                RunAll();
+                foreach (WatchNode node in this.watchNodes)
+                    node.RunFlag = true;
+                this.wake.Set();
             } while (Console.Read() != 'q');
-
-            this.doneFlag = true;
-
-            this.WakeAll();
         }
 
         static Int32 Main(string[] args)
