@@ -181,7 +181,8 @@ namespace Eir.AutoValidate
         }
 
 
-        public void Message(String msg)
+        public void Message(Int32 executionNumber,
+            String msg)
         {
             String msgLevel = msg.Trim().ToUpper();
             ConsoleColor fgColor = ConsoleColor.White;
@@ -206,9 +207,7 @@ namespace Eir.AutoValidate
             else if (msgLevel.StartsWith("INFO"))
                 fgColor = ConsoleColor.DarkGray;
 
-            Console.ForegroundColor = fgColor;
-            Console.WriteLine(msg);
-            Console.ForegroundColor = ConsoleColor.White;
+            Message(fgColor, executionNumber, msg);
         }
 
         public void Message(ConsoleColor fgColor, 
@@ -247,7 +246,7 @@ namespace Eir.AutoValidate
                     String s = await p.StandardOutput.ReadLineAsync();
                     s = s?.Replace("\r", "")?.Replace("\n", "")?.Trim();
                     if (String.IsNullOrEmpty(s) == false)
-                        Message(ConsoleColor.White, executionNum, s);
+                        Message(executionNum, s);
                 } while (p.StandardOutput.EndOfStream == false);
             }
 
