@@ -37,7 +37,7 @@ namespace Eir.AutoValidate
         class WatchNode
         {
             public DateTime LastPingTime;
-            public bool RunFlag = true;
+            public volatile bool RunFlag = true;
             public Options.Watch Watch;
             public List<FileSystemWatcher> Watchers = new List<FileSystemWatcher>();
 
@@ -152,7 +152,8 @@ namespace Eir.AutoValidate
         void RunCommands(out Int32 sleepTime)
         {
             while (RunOneCommand(out sleepTime))
-                ;
+            {
+            }
         }
 
         void RunCommand()
@@ -163,6 +164,17 @@ namespace Eir.AutoValidate
                 this.wake.WaitOne(sleepTime);
                 this.wake.Reset();
                 this.RunCommands(out sleepTime);
+                if (sleepTime == -1)
+                {
+                    Message(ConsoleColor.DarkGray, -1, $"'q'->quit");
+                    Message(ConsoleColor.DarkGray, -1, $"'0'or enter->run all.");
+                    Int32 counter = 1;
+                    foreach (WatchNode node in this.watchNodes)
+                    {
+                        Message(ConsoleColor.DarkGray, -1, $"'{counter}' run {node.Watch.name}");
+                        counter += 1;
+                    }
+                }
             }
         }
 
@@ -187,10 +199,6 @@ namespace Eir.AutoValidate
 
                 gMtx.ReleaseMutex();
             }
-
-            Message(ConsoleColor.DarkGray,
-                    executionNum,
-                    $"Command complete. 'q'->quit, enter->run all.");
         }
 
         public void Trace(String msg)
@@ -357,7 +365,6 @@ namespace Eir.AutoValidate
                     if (String.IsNullOrEmpty(command.cmdPath))
                         throw new Exception($"Watch '{watch.name}' field 'cmdPath' is not set");
                 }
-
                 WatchNode node = new WatchNode(watch);
                 this.watchNodes.Add(node);
                 Start(node);
@@ -366,16 +373,46 @@ namespace Eir.AutoValidate
             Task runTask = new Task(() => this.RunCommand());
             runTask.Start();
 
-            foreach (WatchNode node in this.watchNodes)
-                node.LastPingTime = DateTime.Now;
-
-            // Wait for the user to quit the program.
-            do
+            void RunAll()
             {
                 foreach (WatchNode node in this.watchNodes)
                     node.RunFlag = true;
                 this.wake.Set();
-            } while (Console.Read() != 'q');
+            }
+
+            void RunOne(Int32 selection)
+            {
+                if (selection == 0)
+                    RunAll();
+                else if ((selection > 0) && (selection <= this.watchNodes.Count))
+                {
+                    WatchNode node = this.watchNodes[selection - 1];
+                    node.RunFlag = true;
+                    this.wake.Set();
+                }
+            }
+
+            foreach (WatchNode node in this.watchNodes)
+                node.LastPingTime = DateTime.Now;
+
+            RunAll();
+            // Wait for the user to quit the program.
+            while (true)
+            {
+                String s = Console.ReadLine().Trim().ToLower();
+                switch (s)
+                {
+                    case "":
+                        RunAll();
+                        break;
+                    case "q":
+                        return;
+                    default:
+                        if (Int32.TryParse(s, out Int32 selection))
+                            RunOne(selection);
+                        break;
+                }
+            }
         }
 
         static Int32 Main(string[] args)
