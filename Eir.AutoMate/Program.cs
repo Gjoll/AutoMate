@@ -402,14 +402,15 @@ namespace Eir.AutoValidate
                 String s = Console.ReadLine().Trim().ToLower();
                 switch (s)
                 {
-                    case "":
-                        RunAll();
-                        break;
                     case "q":
                         return;
+
                     default:
+                        Console.Clear();
                         if (Int32.TryParse(s, out Int32 selection))
                             RunOne(selection);
+                        else
+                            RunAll();
                         break;
                 }
             }
