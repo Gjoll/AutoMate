@@ -8,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Eir.AutoValidate
+namespace Eir.AutoMate
 {
     class Program
     {
