@@ -12,6 +12,11 @@ namespace Eir.AutoMate
 {
     class Program
     {
+        const ConsoleColor colorInfo = ConsoleColor.DarkGray;
+        const ConsoleColor colorGood = ConsoleColor.Green;
+        const ConsoleColor colorWarn = ConsoleColor.Yellow;
+        const ConsoleColor colorError = ConsoleColor.Red;
+
         class Options
         {
             public class Command
@@ -166,12 +171,12 @@ namespace Eir.AutoMate
                 this.RunCommands(out sleepTime);
                 if (sleepTime == -1)
                 {
-                    Message(ConsoleColor.DarkGray, -1, $"'q'->quit");
-                    Message(ConsoleColor.DarkGray, -1, $"'0'or enter->run all.");
+                    Message(colorInfo, -1, $"'q'->quit");
+                    Message(colorInfo, -1, $"'0'or enter->run all.");
                     Int32 counter = 1;
                     foreach (WatchNode node in this.watchNodes)
                     {
-                        Message(ConsoleColor.DarkGray, -1, $"'{counter}' run {node.Watch.name}");
+                        Message(colorInfo, -1, $"'{counter}' run {node.Watch.name}");
                         counter += 1;
                     }
                 }
@@ -222,19 +227,19 @@ namespace Eir.AutoMate
                 fgColor = ConsoleColor.White;
             }
             else if (msgLevel.StartsWith("NOTE"))
-                fgColor = ConsoleColor.Green;
+                fgColor = colorGood;
             else if (
                 (msgLevel.StartsWith("WARNING") == true) &&
                 (msgLevel.StartsWith("WARNINGS:") == false)
                 )
-                fgColor = ConsoleColor.Yellow;
+                fgColor = colorWarn;
             else if (
                 (msgLevel.StartsWith("ERROR") == true) &&
                 (msgLevel.StartsWith("ERRORS:") == false)
                 )
-                fgColor = ConsoleColor.Red;
+                fgColor = colorError;
             else if (msgLevel.StartsWith("INFO"))
-                fgColor = ConsoleColor.DarkGray;
+                fgColor = colorInfo;
 
             Message(fgColor, executionNumber, msg);
         }
@@ -253,7 +258,7 @@ namespace Eir.AutoMate
                     Console.Clear();
                 lastMessageTime = now;
 
-                Console.ForegroundColor = ConsoleColor.DarkGray;
+                Console.ForegroundColor = colorInfo;
                 if (executionNumber > 0)
                     Console.Write($"[{executionNumber}] ");
 
@@ -327,26 +332,33 @@ namespace Eir.AutoMate
         {
             foreach (String watchPath in node.Watch.watchPaths)
             {
-                FileSystemWatcher watcher = new FileSystemWatcher();
-                node.Watchers.Add(watcher);
-                watcher.Path = watchPath;
-                // Watch for changes in LastAccess and LastWrite times, and
-                // the renaming of files or directories.
-                watcher.NotifyFilter = NotifyFilters.LastAccess
-                                       | NotifyFilters.LastWrite
-                                       | NotifyFilters.FileName
-                                       | NotifyFilters.DirectoryName;
+                try
+                {
+                    FileSystemWatcher watcher = new FileSystemWatcher();
+                    node.Watchers.Add(watcher);
+                    watcher.Path = watchPath;
+                    // Watch for changes in LastAccess and LastWrite times, and
+                    // the renaming of files or directories.
+                    watcher.NotifyFilter = NotifyFilters.LastAccess
+                                           | NotifyFilters.LastWrite
+                                           | NotifyFilters.FileName
+                                           | NotifyFilters.DirectoryName;
 
-                watcher.Filter = node.Watch.filter;
-                // Add event handlers.
-                watcher.Changed += (sender, args) => NotifyChange(node, watcher);
-                watcher.Created += (sender, args) => NotifyChange(node, watcher);
-                watcher.Deleted += (sender, args) => NotifyChange(node, watcher);
-                watcher.Renamed += (sender, args) => NotifyChange(node, watcher);
-                watcher.IncludeSubdirectories = true;
+                    watcher.Filter = node.Watch.filter;
+                    // Add event handlers.
+                    watcher.Changed += (sender, args) => NotifyChange(node, watcher);
+                    watcher.Created += (sender, args) => NotifyChange(node, watcher);
+                    watcher.Deleted += (sender, args) => NotifyChange(node, watcher);
+                    watcher.Renamed += (sender, args) => NotifyChange(node, watcher);
+                    watcher.IncludeSubdirectories = true;
 
-                // Begin watching.
-                watcher.EnableRaisingEvents = true;
+                    // Begin watching.
+                    watcher.EnableRaisingEvents = true;
+                }
+                catch(Exception err)
+                {
+                    Message(colorError, -1, $"Error creating watcher on path '{watchPath}'");
+                }
             }
         }
 
