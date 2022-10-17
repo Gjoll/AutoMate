@@ -61,10 +61,10 @@ class Build : NukeBuild
         {
             DotNetPublish(s => s
                 .SetConfiguration(Configuration)
-                .SetAssemblyVersion(GitVersion.AssemblySemVer)
-                .SetFileVersion(GitVersion.AssemblySemFileVer)
-                .SetInformationalVersion(GitVersion.AssemblySemFileVer)
-                .SetDescription(GitVersion.InformationalVersion)
+                //.SetAssemblyVersion(GitVersion.AssemblySemVer)
+                //.SetFileVersion(GitVersion.AssemblySemFileVer)
+                //.SetInformationalVersion(GitVersion.AssemblySemFileVer)
+                //.SetDescription(GitVersion.InformationalVersion)
                 .SetSelfContained(false)
                 .SetProject(MainProject)
                 .SetOutput(OutputDirectory / MainProject.Name)
@@ -96,11 +96,11 @@ class Build : NukeBuild
             DotNetPack(s => s
                 .SetProject(MainProject)
                 .SetConfiguration(Configuration)
-                //.SetAssemblyVersion(GitVersion.AssemblySemVer)
-                //.SetFileVersion(GitVersion.AssemblySemFileVer)
-                //.SetInformationalVersion(GitVersion.AssemblySemFileVer)
-                //.SetDescription(GitVersion.InformationalVersion)
-                //.SetProperty("PackageVersion", GitVersion.NuGetVersionV2)
+                .SetAssemblyVersion(GitVersion.AssemblySemVer)
+                .SetFileVersion(GitVersion.AssemblySemFileVer)
+                .SetInformationalVersion(GitVersion.AssemblySemFileVer)
+                .SetDescription(GitVersion.InformationalVersion)
+                .SetProperty("PackageVersion", GitVersion.NuGetVersionV2)
                 .SetOutputDirectory(OutputDirectory)
             );
         });
