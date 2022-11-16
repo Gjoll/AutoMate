@@ -26,7 +26,7 @@ class Build : NukeBuild
     //[GitRepository] readonly GitRepository GitRepository;
     [GitVersion] readonly GitVersion GitVersion;
 
-    Project MainProject => Solution.GetProject("AutoMate");
+    Project MainProject => Solution.GetProject("Eir.AutoMate");
 
     AbsolutePath SourceDirectory => RootDirectory / "Projects";
     AbsolutePath TestsDirectory => RootDirectory / "tests";
